@@ -14,6 +14,19 @@ In Linux you can just simply utilize tools like `ps` or `pstree` in order to enu
 
 Better... Do it in assembly... ;) because why not? I like pain too.
 
+The code will be just printing all process names with pids, not really that fancy for now, in the future we might try to look at some memory regions of the processes and write to them... for now we are going just to re-create `ps` with NASM.
+
+## Couple of things you need to know
+
+1. Trying to make it super simple: we do it in x64, so we need to comply with Linux Calling Convention.
+```
+First six arguments passed in RDI, RSI, RDX, RCX, R8, R9 (in this order).
+Seventh and beyond on stack. (This is quite scary so let's limit ourselves to 6 arguments)
+```
+2. Ther eis this pseudo/dynamic/crazy `/proc` directory that kernel builds dynamically that you can read to learn about all processes:
+
+
+
 ```
 Code blocks
 ```
