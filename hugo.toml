@@ -1,0 +1,4 @@
+baseURL = "https://maldevblog.com/"
+languageCode = "en-us"
+title = "Malware Dev Blog"
+theme = "PaperMod"
