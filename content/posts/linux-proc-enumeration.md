@@ -23,9 +23,9 @@ The code will be just printing all process names with pids, not really that fanc
 First six arguments passed in RDI, RSI, RDX, RCX, R8, R9 (in this order).
 Seventh and beyond on stack. (This is quite scary so let's limit ourselves to 6 arguments)
 ```
-2. Ther eis this pseudo/dynamic/crazy `/proc` directory that kernel builds dynamically that you can read to learn about all processes:
+2. There is this pseudo/dynamic/crazy `/proc` directory that kernel builds dynamically that you can read to learn about all processes:
 
-
+![Traversing /proc](/images/procfs.png)
 
 ```
 Code blocks
