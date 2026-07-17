@@ -238,3 +238,83 @@ Notice a magic number: `19` offset to `d_name`, `16` for `d_reclen`. Check above
 ## Telemetry
 
 This is malware development blog, it is called maldevblog lol, but I am a detection engineer at heart. I also believe that red team should serve blue team. I ALSO BELIEVE THAT THE BEST DETECTIONS ARE PRODUCED BY RUNNING ACTUAL TOOLS AND TTPs. Do NOT write without telemetry generated, please, DO NOT ASSUME, do the thing, look what's there and write the logic.
+
+
+### Auditd
+
+I am getting nostalgic, auditd is something I have been playing with years ago, before eBPF. I recall also MDE agent using auditd (now they upgraded to eBPF).
+
+I know some people are still using it, so let's explore.
+
+Let's think about the behavior for a second: what's actually happening - we are opening a lot of `/proc/<PID>/comm` files, thus I would expect to observe a spike of syscall (2) `open` against `/proc/` directory (technically subdirectories).
+
+The easiest `auditd` rule you can add to see this activity: `sudo auditctl -w /proc/ -p r -k proc_read` (this is not persistent way of adding this, fyi)
+
+After rerunning the program and inspecting the log file: `cat /var/log/audit/audit.log | grep proc_read | grep 'comm="proc"':
+
+```
+type=SYSCALL msg=audit(1784295498.869:1361): arch=c000003e syscall=2 success=yes exit=4 a0=402418 a1=0 a2=0 a3=0 items=1 ppid=10018 pid=10085 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=3 comm="proc" exe="/home/pawel/proc" subj=unconfined key="proc_read"ARCH=x86_64 SYSCALL=open AUID="pawel" UID="pawel" GID="pawel" EUID="pawel" SUID="pawel" FSUID="pawel" EGID="pawel" SGID="pawel" FSGID="pawel"
+```
+
+Well, we have all the details that we need, users pids etc. In total I had over 350 of the same log like above. So in theory you could write a detection logic that would look for same pid generating many reads on `/proc/` directory. 
+
+SYSCALL event type is not the only type of events that are getting generated from this activity, each SYSCALL event would also have corresponding event types that you can correlated on unique event id (in above event case it would be `1784295498.869:1361`):
+
+```
+pawel@ubuntu-box:~/kernel_exercise_6.2$ cat /var/log/audit/audit.log | grep "1784295498.869:1361"
+type=SYSCALL msg=audit(1784295498.869:1361): arch=c000003e syscall=2 success=yes exit=4 a0=402418 a1=0 a2=0 a3=0 items=1 ppid=10018 pid=10085 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=3 comm="proc" exe="/home/pawel/proc" subj=unconfined key="proc_read"ARCH=x86_64 SYSCALL=open AUID="pawel" UID="pawel" GID="pawel" EUID="pawel" SUID="pawel" FSUID="pawel" EGID="pawel" SGID="pawel" FSGID="pawel"
+type=CWD msg=audit(1784295498.869:1361): cwd="/home/pawel"
+type=PATH msg=audit(1784295498.869:1361): item=0 name="/proc/10085/comm" inode=66925 dev=00:18 mode=0100644 ouid=1000 ogid=1000 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0OUID="pawel" OGID="pawel"
+type=PROCTITLE msg=audit(1784295498.869:1361): proctitle="./proc"
+```
+From this the most interesting would the PATH event type as it records the details about what file was open.
+
+This presents the pain point of auditd. Thing is split into multiple event types and you would need to perform more work in order to correlate these together so you can work with these in your SIEM of choice. SUCKS.
+
+What's more, the rule I provided you is noisy as f. There are processes in Linux that are constantly opening `/proc` so you would need somehow to do some baselining and exclude these.
+
+Below you can find a simple dump from ubuntu vm that's been running only for couple of mins:
+
+```
+pawel@ubuntu-box:~/kernel_exercise_6.2$ grep proc_read /var/log/audit/audit.log | grep -v 'comm="proc"' | grep -o 'comm="[^"]*"' | cut -d '"' -f 2 | sort | uniq -c | sort -nr
+   2472 fuser
+   1358 (fwupd)
+    476 vmtoolsd
+    382 (fwupdmgr)
+    142 tar
+    135 dpkg
+    109 snap
+     98 snap-confine
+     85 gsd-housekeepin
+     84 9
+     82 sadc
+     78 http
+     68 (python3)
+     63 gnome-shell
+     51 apt-config
+     40 gpgconf
+     39 sudo
+     36 apt
+     35 firmware-notifi
+     32 gpg-connect-age
+     28 snap-update-ns
+     28 (snap)
+     27 node
+     27 grep
+     24 gpgv
+     18 sed
+     14 snap-seccomp
+     14 snap-exec
+     14 snapctl
+     14 ln
+     12 https
+     11 npm
+     10 (sa1)
+     10 cron
+     10 apt-check
+and more...
+```
+
+I hope it is clear: `DO NOT USE IT IN PRODUCTION`. We explore, we check, we learn. Most likely it will be not worth to detect this kind of activity (wtf, you ask).
+
+So why do you even bother? Because we learn and applying same methodology and deep understanding of what telemetry is generated (by coding stuff yourself, understanding how it is build) by performing the activities.
