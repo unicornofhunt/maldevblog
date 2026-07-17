@@ -219,6 +219,8 @@ ld proc.o -o proc
 
 [!Proc listing](/images/proc_listing.png)
 
+Awesome we can see all the processes with corresponding PIDs listed.
+
 ### Couple of notes:
 
 You load "syscall number" into the rax prior the `syscall` instruction.
@@ -233,4 +235,6 @@ Utilized syscalls:
 Notice a magic number: `19` offset to `d_name`, `16` for `d_reclen`. Check above link for structure brekadown
 
 
+## Telemetry
 
+This is malware development blog, it is called maldevblog lol, but I am a detection engineer at heart. I also believe that red team should serve blue team. I ALSO BELIEVE THAT THE BEST DETECTIONS ARE PRODUCED BY RUNNING ACTUAL TOOLS AND TTPs. Do NOT write without telemetry generated, please, DO NOT ASSUME, do the thing, look what's there and write the logic.
