@@ -215,6 +215,9 @@ _start:
 nasm -f elf64 proc.asm -o proc.o
 ld proc.o -o proc
 ```
+### Output:
+
+[!Proc listing](/images/proc_listing.png)
 
 ### Couple of notes:
 
