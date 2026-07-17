@@ -27,6 +27,18 @@ Seventh and beyond on stack. (This is quite scary so let's limit ourselves to 6 
 
 ![Traversing /proc](/images/procfs.png)
 
+3. For our usage it is important to know that the pattern is `/proc/\<PID\>/comm`. Reading this file gives us command name associated with the process. [man page](https://man7.org/linux/man-pages/man5/proc_pid_comm.5.html). Super easy, we just need to traverse the directory and read all `comm` files.
+
+4. We will utilize syscalls heavily. TBH, it is a matter of setting up arguments/parameters call appropriate syscall, work with the provided output, repeat. It is that simple.
+
 ```
-Code blocks
+You might recall also there is this SSN in Windows that could change across different builds/versions of Windows, thus you usually need to dynamically resolve it. So you need to do a lot of work, parsing and stuff. Fortunately for us, Linus is a beast and says that in Linux these numbers are not going to change.
 ```
+[syscalls documentation](https://github.com/torvalds/linux/blob/master/Documentation/ABI/README)
+
+```
+[...]
+Most interfaces (like syscalls) are expected to never change and always be available.
+```
+
+We can just hardcode these bad boys!
