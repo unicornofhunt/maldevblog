@@ -215,3 +215,19 @@ _start:
 nasm -f elf64 proc.asm -o proc.o
 ld proc.o -o proc
 ```
+
+### Couple of notes:
+
+You load "syscall number" into the rax prior the `syscall` instruction.
+Utilized syscalls:
+- `read` to read the contents of `/proc/<PID./comm`
+- `write` to print outputs to stdout
+- `open`  to open `/proc` and `/proc/<PID>/comm`
+- `close` to close file descriptor (fd) for `comm` and `/proc`
+- `exit` lol
+- `getdents64` to read directory entries - `linux_dirent` structure [link](https://linux.die.net/man/2/getdents64)
+
+Notice a magic number: `19` offset to `d_name`, `16` for `d_reclen`. Check above link for structure brekadown
+
+
+
