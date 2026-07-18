@@ -318,3 +318,16 @@ and more...
 I hope it is clear: `DO NOT USE IT IN PRODUCTION`. We explore, we check, we learn. Most likely it will be not worth to detect this kind of activity (wtf, you ask).
 
 So why do you even bother? Because we learn and applying same methodology and deep understanding of what telemetry is generated (by coding stuff yourself, understanding how it is build) by performing the activities.
+
+If you recall the code and the few notes I have left there for you about syscalls, you will notice that there are more calls we have made. Why cannot we also track these different calls? Yes, oh yes we can. While it is not really smart to go after the `write` and other common ones, the `getdents64` is odd, perhaps you have never seen that before. Track it with this rule (not persistent):
+
+`sudo auditctl -a always,exit -F arch=b64 -S getdents64 -k track_getdents`
+
+You will see quite a few events like these:
+
+```
+type=SYSCALL msg=audit(1784392977.876:25424): arch=c000003e syscall=217 success=yes exit=0 a0=3 a1=402018 a2=400 a3=0 items=0 ppid=3988 pid=9953 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts0 ses=9 comm="proc" exe="/home/pawel/proc" subj=unconfined key="track_getdents"ARCH=x86_64 SYSCALL=getdents64 AUID="pawel" UID="pawel" GID="pawel" EUID="pawel" SUID="pawel" FSUID="pawel" EGID="pawel" SGID="pawel" FSGID="pawel"
+type=PROCTITLE msg=audit(1784392977.876:25424): proctitle="./proc"
+```
+
+Interestingly, there is no PATH event type. What's more, this is yet again, noisy as f..., if you have this rule and perform simple `ls /home` it will also trigger. So yet again, NOT really somethign I would put on production environment without heavy filtering etc.
