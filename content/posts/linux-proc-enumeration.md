@@ -331,3 +331,5 @@ type=PROCTITLE msg=audit(1784392977.876:25424): proctitle="./proc"
 ```
 
 Interestingly, there is no PATH event type. What's more, this is yet again, noisy as f..., if you have this rule and perform simple `ls /home` it will also trigger. So yet again, NOT really somethign I would put on production environment without heavy filtering etc.
+
+The reason that there is not PATH event is that `getdents64` is working on `fd` (File Descriptor). `/proc` is dynamically generated, so it does not really have an inode. So you cannot do auditd rule with `-F dir=/proc/`. (Assumptions, but testing confirms it).
