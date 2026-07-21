@@ -349,6 +349,8 @@ magic = BPF_CORE_READ(file, f_inode, i_sb, s_magic);
 ```
 This macro just iallows us to derefeference every pointer in this struct. `file` struct has `inode` struct and inode struct has `super block` struct that holds lots of details about filesystem: [link](https://docs.kernel.org/filesystems/ext4/super.html). One of these is this `magic`. That is this magic signature.
 
+Cool stack overflow moment: [what do header linux/magic.h \[...\]do?](https://stackoverflow.com/questions/49726787/what-do-header-linux-magic-h-and-linux-posion-h-do)
+
 If you fancy traversing structures yourself, here you go (once you generated `vmlinux.h`):
 
 ```
