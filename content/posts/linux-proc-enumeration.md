@@ -342,7 +342,7 @@ I decided to utilize BPF LSM (Linux 5.7+ I believe). So we utilize `SEC("lsm/fil
 
 When it comes to the rest of the code I just read chapter 5 of "Learning eBPF" by Liz Rice, it is great, and does better job explaining various stuff than I would ever do.
 
-What is interesting is this line:
+What is interesting is this line [sweet reference](https://docs.ebpf.io/ebpf-library/libbpf/ebpf/BPF_CORE_READ/): 
 
 ```
 magic = BPF_CORE_READ(file, f_inode, i_sb, s_magic);
