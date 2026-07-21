@@ -334,4 +334,129 @@ Interestingly, there is no PATH event type. What's more, this is yet again, nois
 
 The reason that there is not PATH event is that `getdents64` is working on `fd` (File Descriptor). `/proc` is dynamically generated, so it does not really have an inode. So you cannot do auditd rule with `-F dir=/proc/`. (Assumptions, but testing confirms it).
 
-### eBPF (wip)
+### eBPF
+
+eBPF is quite a new topic for me. I know it is the new hot, new shiny and it is suuuper cool when you look at it and what it can give you. I will not waste time explaining what it is and how it works, you can google or fancy your awesome AI models (I know you use them, you sneaky sneaky boyo). What it remainds me is your typical kernel driver for Windows. However, we can utilize `bpftool` to load it and attach without building user-space program (yey!). You build driver part and then user-mode app that talks with the driver via Irp requests etc. With eBPF we can build this tracking module that will print us a message whenever someone opens  `/proc`.
+
+I decided to utilize BPF LSM (Linux 5.7+ I believe). So we utilize `SEC("lsm/file_open")` for our use case. I understand this as this additional layer of abstraction so we do not program every other different syscall tracking that could be utilized to open like `open(), openat()` etc. On the other hand we loose the actual syscall context that was performed. I mean tradeoffs am I right?
+
+When it comes to the rest of the code I just read chapter 5 of "Learning eBPF" by Liz Rice, it is great, and does better job explaining various stuff than I would ever do.
+
+What is interesting is this line:
+
+```
+magic = BPF_CORE_READ(file, f_inode, i_sb, s_magic);
+```
+This macro just iallows us to derefeference every pointer in this struct. `file` struct has `inode` struct and inode struct has `super block` struct that holds lots of details about filesystem: [link](https://docs.kernel.org/filesystems/ext4/super.html). One of these is this `magic`. That is this magic signature.
+
+If you fancy traversing structures yourself, here you go (once you generated `vmlinux.h`):
+
+```
+grep -A 30 "struct file {" vmlinux.h
+grep -A 30 "struct inode {" vmlinux.h
+grep -A 30 "struct super_block {" vmlinux.h
+```
+
+Magic value can be obtained via: 
+```
+cat /usr/include/linux/magic.h | grep PROC_SUPER_MAGIC
+```
+
+`stat` command is using these values to determine the filesystem:
+
+```
+pawel@debox:~$ stat -f /proc
+  File: "/proc"
+    ID: 1700000000 Namelen: 255     Type: proc
+Block size: 4096       Fundamental block size: 4096
+Blocks: Total: 0          Free: 0          Available: 0
+Inodes: Total: 0          Free: 0
+pawel@debox:~$ stat -f -c %t /proc
+9fa0
+```
+
+
+#### Genereate vmlinux.h headers:
+
+```
+bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+```
+
+
+#### The Code:
+
+```
+#include "vmlinux.h"
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_tracing.h>
+#include <bpf/bpf_core_read.h>
+
+#define PROC_SUPER_MAGIC 0x9fa0 //identify /proc 
+
+char __license[] SEC("license") = "GPL";
+
+SEC("lsm/file_open")
+int BPF_PROG(track_proc_open, struct file *file)
+{
+    long magic;
+    const unsigned char *name;
+    char buf[32];
+
+    magic = BPF_CORE_READ(file, f_inode, i_sb, s_magic);
+
+    if (magic != PROC_SUPER_MAGIC) {
+        return 0;
+    }
+
+    name = BPF_CORE_READ(file, f_path.dentry, d_name.name);
+    bpf_probe_read_kernel_str(buf, sizeof(buf), name);
+
+    pid_t pid = bpf_get_current_pid_tgid() >> 32;
+    bpf_printk("PID %d opened a file in /proc: %s\n", pid, buf);
+
+    return 0;
+}
+```
+#### Build:
+
+```
+clang -g -O2 -target bpf -c proc_watchdog.bpf.c -o proc_watchdog.bpf.o
+sudo bpftool prog loadall proc_watchdog.bpf.o /sys/fs/bpf/proc_watchdog autoattach
+```
+#### Check output:
+
+```
+sudo cat /sys/kernel/tracing/trace_pipe
+```
+
+#### Output:
+
+```
+            proc-1166    [000] ...11  1350.725753: bpf_trace_printk: PID 1166 opened a file in /proc: comm
+
+            proc-1166    [000] ...11  1350.725758: bpf_trace_printk: PID 1166 opened a file in /proc: comm
+
+            proc-1166    [000] ...11  1350.725763: bpf_trace_printk: PID 1166 opened a file in /proc: comm
+
+            proc-1166    [000] ...11  1350.725768: bpf_trace_printk: PID 1166 opened a file in /proc: comm
+            [...] and lots of lines
+```
+#### Remove:
+
+```
+sudo rm -rf /sys/fs/bpf/proc_watchdog
+```
+
+## Where it fails (potential hardening)
+
+I am not the best Linux tech out there, but I am aware of shortcomings of this technique (process enumeration with `/proc` directory). Example would be:
+
+https://www.redhat.com/en/blog/hidepid-linux-hide-pid
+
+If you run this command:
+
+```
+$ sudo mount -o remount,rw,nosuid,nodev,noexec,relatime,hidepid=2 /proc
+```
+
+And then execute our little program, you will be presented only with processes that are owned by the user that run the program, I guess it is related to capabilities or smth. Nevertheless, if you run the program as `root` you will see everything.
