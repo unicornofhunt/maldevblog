@@ -347,7 +347,7 @@ What is interesting is this line:
 ```
 magic = BPF_CORE_READ(file, f_inode, i_sb, s_magic);
 ```
-This macro just iallows us to derefeference every pointer in this struct. `file` struct has `inode` struct and inode struct has `super block` struct that holds lots of details about filesystem: [link](https://docs.kernel.org/filesystems/ext4/super.html). One of these is this `magic`. That is this magic signature.
+This macro just allows us to derefeference every pointer in this struct. `file` struct has `inode` struct and inode struct has `super block` struct that holds lots of details about filesystem: [link](https://docs.kernel.org/filesystems/ext4/super.html). One of these is this `magic`. That is this magic signature.
 
 Cool stack overflow moment: [what do header linux/magic.h \[...\]do?](https://stackoverflow.com/questions/49726787/what-do-header-linux-magic-h-and-linux-posion-h-do)
 
@@ -462,3 +462,5 @@ $ sudo mount -o remount,rw,nosuid,nodev,noexec,relatime,hidepid=2 /proc
 ```
 
 And then execute our little program, you will be presented only with processes that are owned by the user that run the program, I guess it is related to capabilities or smth. Nevertheless, if you run the program as `root` you will see everything.
+
+.EOF
