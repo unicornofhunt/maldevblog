@@ -1,5 +1,5 @@
 +++
-title = 'Windows Event Log Persistence'
+title = 'Hiding In Plain Sight (Windows) - Store Payload in Events'
 date = 2026-07-27T09:33:44+02:00
 draft = false
 +++
