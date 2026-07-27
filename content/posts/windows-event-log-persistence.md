@@ -20,7 +20,10 @@ I have also decided to write this one in C, I think the previous post with assem
 
 Below are the names of the Win32 APIs that we are going to utilize to write the event:
 
-- `RegisterEventSourceW`
-- `ReportEventW`
-- `DeregisterEventSource`
+- `RegisterEventSourceW` (If source cannot be found, it defaults to Application log, perfectly fine for us. Opens handle to EventLog that we need for `ReportEventW` call)
+- `ReportEventW` (Actual API that writes the event)
+- `DeregisterEventSource` (Closes the EventLog handle - be good boy cleanup)
+
+Cool sample from MS DOCS: [link](https://learn.microsoft.com/en-us/windows/win32/eventlog/reporting-an-event)
+
 
