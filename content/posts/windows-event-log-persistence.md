@@ -16,8 +16,6 @@ BONUS: See what's gonna get logged in terms of telemetry if you have `MDE`!!! (W
 
 I have also decided to write this one in C, I think the previous post with assembly was cool but it might not resontate with people that well. (Surprise that no ones cares or knows how to write/read assembly lol).
 
-<iframe data-testid="embed-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/track/2umFCVDZCQwadG1UtK0gLh?utm_source=generator&si=aca3a5fcb4604c38" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-
 ## Win32 APIs to write event
 
 Below are the names of the Win32 APIs that we are going to utilize to write the event:
