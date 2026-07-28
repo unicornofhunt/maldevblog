@@ -51,6 +51,14 @@ The following information was included with the event:
 The message resource is present but the message was not found in the message table
 ```
 
+Since I used source "Windows Kernel Reporting", the good idea would be perhaps to use EventID `323` as it evaluates to `ERROR_INTERMIXED_KERNEL_EA_OPERATION`:
+
+```
+An attempt was made to modify both a KERNEL and normal Extended Attribute (EA) in the same operation.
+```
+
+Again, something to for you to play with to make it look benign.
+
 Let's not worry about it, the binary data gets there and we do not require Admin rights, all good!
 
 Note: I have used custom PIC hand-written with the usage of `Crystal Palace` (something for another blog post) I do believe the usual shellcode generated from `msfvenom` should also work.
