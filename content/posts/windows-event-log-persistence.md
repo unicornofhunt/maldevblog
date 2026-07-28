@@ -133,3 +133,11 @@ Build:
 ```
 gcc WriteToEventLog.c -o WriteToEventLog.exe
 ```
+
+## MDE POV
+
+By executing and checking the events generated within MDE, you will find your usual process execution events and that's it.
+
+I guess for this you are only relying on your "rare executable/processes" kind of detections. <- This becomes problematic if you utilize different means than exec to perform this activity (idk, PowerShell maybe...).
+
+Obviously, there are `Application` channel events that are generated <- these are rarely being collected, the idea would be to check for weird looking events with embedded binary data. The amount of noise events you will get is enormous. Thus I do not believe that there are good options to detect the activity at this level.
