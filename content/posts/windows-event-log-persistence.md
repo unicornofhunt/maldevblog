@@ -261,5 +261,9 @@ If someone has used this as persistence mechanism, the detection opportunity wou
 
 In terms of retrieving the event and executing it, again, there is no telemetry that would indicate retrieival of the data from events, you need to "shift more to the right" and focus on the following activities (beacon activity from rare process etc).
 
+## References:
+- https://www.kaspersky.com/about/press-releases/a-new-take-on-fileless-malware-malicious-code-in-event-logs
+- https://www.quorumcyber.com/threat-intelligence/new-technique-to-hide-malware-in-event-logs/
+- https://securelist.com/a-new-secret-stash-for-fileless-malware/106393/
 
 EOF
