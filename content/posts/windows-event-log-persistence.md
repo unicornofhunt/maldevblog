@@ -196,7 +196,7 @@ while (!bFound) {
                 break;
             }
             pBuffer = pTemp;
-            continue; // Retry with bigger buff
+            continue; // retry with bigger buff
         } 
         else if (dwError == ERROR_HANDLE_EOF) {
             printf("Failed to find matching event.\n");
@@ -208,7 +208,6 @@ while (!bFound) {
         }
     }
 
-    // Iterate through all records returned in the current buffer read
     DWORD dwOffset = 0;
     while (dwOffset < dwBytesRead) {
         PEVENTLOGRECORD pRecord = (PEVENTLOGRECORD)((BYTE *)pBuffer + dwOffset);
